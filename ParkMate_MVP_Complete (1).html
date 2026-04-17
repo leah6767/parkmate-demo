@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkMate - Smart Parking MVP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* SPLASH SCREEN */
+        #splash {
+            background: linear-gradient(to bottom right, #000, #0f172a, #000);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .splash-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+        }
+
+        .splash-glow1 {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+            opacity: 0.1;
+            top: -100px;
+            right: -100px;
+            border-radius: 50%;
+            filter: blur(60px);
+        }
+
+        .splash-glow2 {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
+            opacity: 0.1;
+            bottom: -100px;
+            left: -100px;
+            border-radius: 50%;
+            filter: blur(60px);
+        }
+
+        .splash-content {
+            text-align: center;
+            z-index: 10;
+            animation: fadeInScale 0.9s ease-out;
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .splash-content h1 {
+            font-size: 72px;
+            font-weight: 900;
+            background: linear-gradient(90deg, #60a5fa, #06b6d4, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+
+        .splash-content p {
+            color: #06b6d4;
+            font-size: 14px;
+            letter-spacing: 3px;
+            font-weight: 300;
+        }
+
+        .pulse-dots {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #06b6d4;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .pulse-dot:nth-child(2) { animation-delay: 0.2s; }
+        .pulse-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* SEARCH SCREEN */
+        #search {
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 40px;
+            background: linear-gradient(135deg, #000 0%, #0f172a 50%, #000 100%);
+            overflow-y: auto;
+        }
+
+        .search-header h1 {
+            font-size: 52px;
+            font-weight: 900;
+            background: linear-gradient(90deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 40px;
+            letter-spacing: 3px;
+        }
+
+        .search-input {
+            width: 90%;
+            max-width: 500px;
+            padding: 16px 20px;
+            background: #1e293b;
+            border: 1px solid #3b82f6;
+            border-radius: 14px;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            margin-bottom: 30px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .search-input::placeholder {
+            color: #64748b;
+        }
+
+        .quick-access {
+            width: 90%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .quick-btn {
+            padding: 14px;
+            background: linear-gradient(90deg, #1e293b, #0f172a);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .quick-btn:hover {
+            background: linear-gradient(90deg, #334155, #1a1f35);
+            border-color: #60a5fa;
+            transform: translateX(5px);
+        }
+
+        .quick-btn span:first-child {
+            font-size: 24px;
+        }
+
+        /* ROUTES SCREEN */
+        #routes {
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: flex-end;
+            background: linear-gradient(135deg, #000 0%, #0f172a 50%, #000 100%);
+        }
+
+        .route-card {
+            padding: 18px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.7));
+            border: 1.5px solid rgba(59, 130, 246, 0.3);
+            border-radius: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            color: #fff;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .route-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #06b6d4, #0ea5e9);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s;
+        }
+
+        .route-card:hover {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            border-color: rgba(59, 130, 246, 0.8);
+            transform: translateY(-3px);
+        }
+
+        .route-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .route-card.best {
+            border-color: #06b6d4;
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(6, 182, 212, 0.05));
+        }
+
+        .route-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(90deg, #06b6d4, #0ea5e9);
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        .route-time {
+            font-size: 28px;
+            font-weight: 900;
+            color: #06b6d4;
+            margin-bottom: 8px;
+        }
+
+        .route-details {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        .route-details strong {
+            color: #06b6d4;
+            font-weight: 700;
+        }
+
+        .route-type {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), #0f172a);
+            border-top: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 28px 28px 0 0;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 28px 20px;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .sheet-header h2 {
+            font-size: 26px;
+            font-weight: 900;
+        }
+
+        .sheet-header p {
+            font-size: 13px;
+            color: #06b6d4;
+            font-weight: 600;
+        }
+
+        .ai-insight {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 18px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .ai-insight-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .ai-insight-text {
+            font-size: 13px;
+            color: #e9d5ff;
+            line-height: 1.4;
+        }
+
+        .ai-insight-text strong {
+            color: #a78bfa;
+        }
+
+        .lot-item {
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.6));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .lot-item:hover {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+            border-color: rgba(59, 130, 246, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .lot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .lot-info h3 {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 3px;
+        }
+
+        .lot-info p {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .lot-available {
+            text-align: right;
+        }
+
+        .lot-count {
+            font-size: 28px;
+            font-weight: 900;
+            color: #06b6d4;
+        }
+
+        .lot-sub {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .lot-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-weight: 900;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 5px;
+            background: #1e293b;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #06b6d4);
+            transition: width 0.3s;
+        }
+
+        /* SPOTS GRID */
+        .spots-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .spot-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spot-available {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+        }
+
+        .spot-available:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+
+        .spot-available.selected {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.8);
+            border: 2px solid #00d9ff;
+        }
+
+        .spot-reserved {
+            background: rgba(234, 179, 8, 0.5);
+            color: #fbbf24;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .spot-occupied {
+            background: rgba(239, 68, 68, 0.5);
+            color: #fca5a5;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .spot-legend {
+            display: flex;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* NAVIGATION SCREEN */
+        #navigate {
+            flex-direction: column;
+            background: linear-gradient(135deg, #000 0%, #0f172a 50%, #000 100%);
+            position: relative;
+        }
+
+        .nav-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #3b82f6;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 40;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-item {
+            color: #06b6d4;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-big {
+            font-size: 32px;
+            font-weight: 900;
+            color: #fff;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        .live-map {
+            position: absolute;
+            top: 140px;
+            left: 20px;
+            right: 20px;
+            height: 240px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .map-route {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 15px;
+            color: #06b6d4;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .map-indicator {
+            font-size: 40px;
+        }
+
+        /* PARKED SCREEN */
+        #parked {
+            flex-direction: column;
+            background: #000;
+        }
+
+        .parked-header {
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .parked-check {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .parked-title {
+            font-size: 28px;
+            font-weight: 900;
+            color: #10b981;
+            margin-top: 10px;
+        }
+
+        .parked-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .parked-map {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #000 100%);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .map-visualization {
+            width: 90%;
+            height: 90%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 2px dashed rgba(16, 185, 129, 0.4);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            position: relative;
+        }
+
+        .building {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3b82f6, #1e3a8a);
+            border: 2px solid #60a5fa;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #60a5fa;
+            font-weight: 600;
+            position: absolute;
+        }
+
+        .building-1 { top: 20px; left: 20px; }
+        .building-2 { top: 20px; right: 20px; }
+        .building-3 { bottom: 20px; left: 20px; }
+
+        .parking-spot {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            border: 3px solid #00d9ff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #fff;
+            font-size: 24px;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.6);
+        }
+
+        .location-info {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 12px 15px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .location-icon {
+            font-size: 20px;
+        }
+
+        .location-details {
+            font-size: 12px;
+            flex: 1;
+        }
+
+        .location-details p {
+            margin: 2px 0;
+        }
+
+        .location-title {
+            font-weight: 700;
+            color: #06b6d4;
+        }
+
+        .location-address {
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        .parked-footer {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #06b6d4, #0ea5e9);
+            color: #000;
+            font-weight: 900;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1.5px solid rgba(71, 85, 105, 0.7);
+            color: #cbd5e1;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(30, 41, 59, 0.5);
+            border-color: rgba(148, 163, 184, 0.9);
+        }
+
+        h2 {
+            font-size: 26px;
+            font-weight: 900;
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .reserved-badge {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: #6ee7b7;
+            margin-bottom: 15px;
+            font-weight: 600;
+            font-size: 13px;
+            display: inline-block;
+        }
+
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .timer-big {
+            font-size: 48px;
+            font-weight: 900;
+            margin: 15px 0;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        .direction-text {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 12px 0;
+            color: #e2e8f0;
+        }
+
+        .step-info {
+            background: rgba(30, 41, 59, 0.4);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #cbd5e1;
+            margin: 8px 0;
+            border-left: 3px solid #06b6d4;
+            padding-left: 12px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SPLASH SCREEN -->
+        <div id="splash" class="screen active">
+            <div class="splash-bg">
+                <div class="splash-glow1"></div>
+                <div class="splash-glow2"></div>
+            </div>
+            <div class="splash-content">
+                <h1>PARKMATE</h1>
+                <p>Next-Generation Parking Intelligence</p>
+                <div class="pulse-dots">
+                    <div class="pulse-dot"></div>
+                    <div class="pulse-dot"></div>
+                    <div class="pulse-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEARCH SCREEN -->
+        <div id="search" class="screen">
+            <div class="search-header">
+                <h1>PARKMATE</h1>
+            </div>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search destination..." />
+            <div class="quick-access">
+                <button class="quick-btn" onclick="goToRoutes('Home')"><span>🏠</span> <span>Home</span></button>
+                <button class="quick-btn" onclick="goToRoutes('Office')"><span>💼</span> <span>Office</span></button>
+                <button class="quick-btn" onclick="goToRoutes('Mall')"><span>🛍️</span> <span>Mall</span></button>
+            </div>
+        </div>
+
+        <!-- ROUTES SCREEN -->
+        <div id="routes" class="screen">
+            <div class="bottom-sheet">
+                <div class="sheet-header">
+                    <div>
+                        <h2 id="destTitle">Destination</h2>
+                        <p style="margin-top: 8px;">Choose your preferred route</p>
+                    </div>
+                </div>
+                
+                <div id="routesList"></div>
+            </div>
+        </div>
+
+        <!-- PARKING LOTS SCREEN -->
+        <div id="parking" class="screen">
+            <div class="bottom-sheet">
+                <div class="sheet-header">
+                    <div>
+                        <h2 id="destTitle2">Destination</h2>
+                        <p>4 lots available • Real-time data</p>
+                    </div>
+                </div>
+                
+                <div class="ai-insight">
+                    <div class="ai-insight-icon">⚡</div>
+                    <div class="ai-insight-text">
+                        <strong>AI Recommendation:</strong> Lot C offers best availability (18 spots) with lowest turnover time. Predicted 99% success rate.
+                    </div>
+                </div>
+
+                <div id="lotsList"></div>
+            </div>
+        </div>
+
+        <!-- SPOTS SCREEN -->
+        <div id="spots" class="screen">
+            <div class="bottom-sheet">
+                <div class="sheet-header">
+                    <h2 id="spotTitle">Lot</h2>
+                </div>
+                
+                <div class="spot-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: rgba(234, 179, 8, 0.5);"></div>
+                        <span>Reserved</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: rgba(239, 68, 68, 0.5);"></div>
+                        <span>Occupied</span>
+                    </div>
+                </div>
+
+                <div class="spots-grid" id="spotsGrid"></div>
+                <button class="btn btn-primary" id="startNavBtn" onclick="startNavigation()" style="width: 100%; display: none; margin-top: 15px;">Activate Navigation</button>
+            </div>
+        </div>
+
+        <!-- NAVIGATION SCREEN -->
+        <div id="navigate" class="screen">
+            <div class="nav-info">
+                <div>
+                    <div class="nav-item">Spot</div>
+                    <div class="nav-big" id="navSpot">--</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="nav-item">ETA</div>
+                    <div class="nav-big" id="navTimer" style="color: #06b6d4;">8:00</div>
+                </div>
+            </div>
+
+            <div class="live-map">
+                <div class="map-route">
+                    <div class="map-indicator">🛣️</div>
+                    <div id="mapStatus">Route: Main Road → Your Spot</div>
+                    <div style="font-size: 12px; color: #64748b;">Real-time navigation active</div>
+                </div>
+            </div>
+
+            <div class="bottom-sheet" style="max-height: 50vh; margin-top: 280px;">
+                <div class="timer-big" id="distanceDisplay">480 m</div>
+                <div class="direction-text" id="directionText">Continue straight</div>
+                
+                <div class="step-info" id="stepInfo">
+                    📍 1.2 km ahead • Follow main route • Via D77 - Al Manama St
+                </div>
+
+                <div class="reserved-badge" id="reservedBadge" style="display: none;">✓ Spot Reserved - 5 minute hold</div>
+
+                <div class="button-row">
+                    <button class="btn btn-secondary" onclick="cancelNav()">Cancel</button>
+                    <button class="btn btn-primary" onclick="markParked()">Parked ✓</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PARKED SCREEN -->
+        <div id="parked" class="screen">
+            <div class="parked-header">
+                <div class="parked-check">✓</div>
+                <h3 style="color: #10b981;">Successfully Parked</h3>
+                <h2 class="parked-title" id="parkedSpotTitle">Spot --</h2>
+                <p class="parked-subtitle">Time saved: <strong style="color: #10b981;">14 minutes</strong></p>
+            </div>
+
+            <div class="parked-map">
+                <div class="map-visualization">
+                    <div class="building building-1">Admin<br>Building</div>
+                    <div class="building building-2">Library</div>
+                    <div class="parking-spot" id="parkedSpotDisplay">P</div>
+                    <div class="building building-3">Cafeteria</div>
+                </div>
+                <div class="location-info">
+                    <div class="location-icon">📍</div>
+                    <div class="location-details">
+                        <p class="location-title">Your Location</p>
+                        <p id="parkedLotTitle">Lot -- • Row --, Spot --</p>
+                        <p class="location-address">Near Student Center • ~280m walk</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="parked-footer">
+                <button class="btn btn-primary" onclick="locateCar()">📍 Locate My Car</button>
+                <button class="btn btn-secondary" onclick="goHome()">Back to Home</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // STATE
+        let state = {
+            destination: '',
+            selectedRoute: null,
+            selectedLot: null,
+            selectedSpot: null,
+            navigationTime: 480,
+            spotReserved: false
+        };
+
+        const lots = {
+            A: { name: 'Lot A', subtitle: 'Main Entrance', avail: 12, reserved: 5, occupied: 43, capacity: 72, distance: '0.2 km', score: 92 },
+            B: { name: 'Lot B', subtitle: 'West Wing', avail: 3, reserved: 2, occupied: 55, capacity: 98, distance: '0.4 km', score: 45 },
+            C: { name: 'Lot C', subtitle: 'East Block', avail: 18, reserved: 4, occupied: 38, capacity: 70, distance: '0.3 km', score: 88 },
+            D: { name: 'Lot D', subtitle: 'Overflow', avail: 8, reserved: 3, occupied: 49, capacity: 82, distance: '0.6 km', score: 72 }
+        };
+
+        const routes = [
+            { time: '10 min', distance: '7.2 km', road: 'Via D77 - Al Manama St', type: 'Best route, Typical traffic', best: true },
+            { time: '15 min', distance: '8.5 km', road: 'Via Sheikh Zayed Road', type: 'Alternative route', best: false }
+        ];
+
+        // SCREEN MANAGEMENT
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // SPLASH SCREEN - Auto transition
+        setTimeout(() => {
+            showScreen('search');
+            document.getElementById('searchInput').focus();
+        }, 3500);
+
+        // SEARCH SCREEN
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.target.value) {
+                goToRoutes(e.target.value);
+            }
+        });
+
+        function goToRoutes(dest) {
+            state.destination = dest;
+            document.getElementById('destTitle').textContent = dest;
+            
+            const routesList = document.getElementById('routesList');
+            routesList.innerHTML = '';
+            
+            routes.forEach((route, idx) => {
+                const div = document.createElement('div');
+                div.className = 'route-card' + (route.best ? ' best' : '');
+                div.innerHTML = `
+                    ${route.best ? '<div class="route-badge">⭐ RECOMMENDED</div>' : ''}
+                    <div class="route-time">${route.time}</div>
+                    <div class="route-details">
+                        <strong>${route.distance}</strong> • ${route.road}
+                    </div>
+                    <div class="route-type">${route.type}</div>
+                `;
+                div.onclick = () => goToParking(idx);
+                routesList.appendChild(div);
+            });
+            
+            showScreen('routes');
+        }
+
+        function goToParking(routeIdx) {
+            state.selectedRoute = routeIdx;
+            document.getElementById('destTitle2').textContent = state.destination;
+            
+            const lotsList = document.getElementById('lotsList');
+            lotsList.innerHTML = '';
+            
+            Object.entries(lots).forEach(([key, lot]) => {
+                const div = document.createElement('div');
+                div.className = 'lot-item';
+                div.innerHTML = `
+                    <div class="lot-header">
+                        <div class="lot-info">
+                            <h3>${lot.name}</h3>
+                            <p>${lot.subtitle}</p>
+                        </div>
+                        <div class="lot-available">
+                            <div class="lot-count">${lot.avail}</div>
+                            <div class="lot-sub">Available</div>
+                        </div>
+                    </div>
+                    <div class="lot-stats">
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: #10b981;">${lot.avail}</div>
+                            <div class="stat-label">Free</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: #eab308;">${lot.reserved}</div>
+                            <div class="stat-label">Reserved</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: #ef4444;">${lot.occupied}</div>
+                            <div class="stat-label">Occupied</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${lot.capacity}%; background: ${lot.capacity < 60 ? 'linear-gradient(90deg, #10b981, #06b6d4)' : lot.capacity < 85 ? 'linear-gradient(90deg, #eab308, #f97316)' : 'linear-gradient(90deg, #ef4444, #dc2626)'};">
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #64748b;">
+                        <span>📍 ${lot.distance}</span>
+                        <span style="color: #06b6d4; font-weight: 600;">${lot.score}% Match</span>
+                    </div>
+                `;
+                div.onclick = () => goToSpots(key);
+                lotsList.appendChild(div);
+            });
+            
+            showScreen('parking');
+        }
+
+        // SPOTS SCREEN
+        function goToSpots(lotKey) {
+            state.selectedLot = lotKey;
+            state.selectedSpot = null;
+            document.getElementById('spotTitle').textContent = lots[lotKey].name;
+            
+            const grid = document.getElementById('spotsGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= 60; i++) {
+                const status = i <= 18 ? 'available' : i <= 23 ? 'reserved' : 'occupied';
+                const btn = document.createElement('button');
+                btn.className = `spot-btn spot-${status}`;
+                btn.textContent = i;
+                btn.disabled = status !== 'available';
+                
+                if (status === 'available') {
+                    btn.onclick = () => selectSpot(i, btn);
+                }
+                
+                grid.appendChild(btn);
+            }
+            
+            showScreen('spots');
+        }
+
+        function selectSpot(spotId, btn) {
+            document.querySelectorAll('.spot-btn.selected').forEach(b => b.classList.remove('selected'));
+            if (state.selectedSpot !== spotId) {
+                state.selectedSpot = spotId;
+                btn.classList.add('selected');
+                document.getElementById('startNavBtn').style.display = 'block';
+            }
+        }
+
+        // NAVIGATION
+        function startNavigation() {
+            state.navigationTime = 480;
+            state.spotReserved = false;
+            
+            const row = String.fromCharCode(65 + Math.floor((state.selectedSpot - 1) / 10));
+            const num = ((state.selectedSpot - 1) % 10) + 1;
+            document.getElementById('navSpot').textContent = row + num;
+            
+            showScreen('navigate');
+            updateNavigation();
+        }
+
+        function updateNavigation() {
+            if (state.navigationTime > 0) {
+                state.navigationTime--;
+                
+                if (state.navigationTime === 60) {
+                    state.spotReserved = true;
+                    document.getElementById('reservedBadge').style.display = 'block';
+                }
+                
+                const mins = Math.floor(state.navigationTime / 60);
+                const secs = state.navigationTime % 60;
+                const timeStr = mins + ':' + (secs < 10 ? '0' : '') + secs;
+                document.getElementById('navTimer').textContent = timeStr;
+                document.getElementById('navTimer').style.color = state.navigationTime <= 60 ? '#ef4444' : '#06b6d4';
+                
+                const distance = Math.max(0, state.navigationTime - 60);
+                document.getElementById('distanceDisplay').textContent = distance + ' m';
+                
+                let direction = 'Continue Straight';
+                let step = '📍 1.2 km ahead • Follow main route';
+                if (state.navigationTime <= 120) {
+                    direction = 'Turn Right into Lot';
+                    step = '🔄 Parking facility • Enter lot';
+                } else if (state.navigationTime <= 240) {
+                    direction = 'Turn Left Ahead';
+                    step = '🚗 Prepare to turn • At intersection';
+                }
+                document.getElementById('directionText').textContent = direction;
+                document.getElementById('stepInfo').textContent = step;
+                document.getElementById('mapStatus').textContent = state.navigationTime > 240 ? '🛣️ Route: Main Road → Your Spot' : state.navigationTime > 120 ? '🔄 Route: Approaching intersection' : '🅿️ Route: Entering parking lot';
+                
+                if (state.navigationTime > 0) {
+                    setTimeout(updateNavigation, 1000);
+                }
+            }
+        }
+
+        function cancelNav() {
+            showScreen('search');
+            document.getElementById('searchInput').value = '';
+            state.selectedSpot = null;
+            state.selectedLot = null;
+        }
+
+        function markParked() {
+            const row = String.fromCharCode(65 + Math.floor((state.selectedSpot - 1) / 10));
+            const num = ((state.selectedSpot - 1) % 10) + 1;
+            document.getElementById('parkedSpotTitle').textContent = 'Spot ' + row + num;
+            document.getElementById('parkedLotTitle').innerHTML = `Lot ${state.selectedLot} • Row ${row}, Spot ${num}<br><span class="location-address">Near Student Center • ~280m walk</span>`;
+            document.getElementById('parkedSpotDisplay').textContent = num;
+            showScreen('parked');
+        }
+
+        function locateCar() {
+            const row = String.fromCharCode(65 + Math.floor((state.selectedSpot - 1) / 10));
+            const num = ((state.selectedSpot - 1) % 10) + 1;
+            alert('📍 Locate My Car\n\nYour car is parked at:\nLot ' + state.selectedLot + ' • Row ' + row + ', Spot ' + num + '\n\nNear Student Center\nFollowing directions...');
+        }
+
+        function goHome() {
+            state.selectedSpot = null;
+            state.selectedLot = null;
+            state.spotReserved = false;
+            showScreen('search');
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchInput').focus();
+        }
+    </script>
+</body>
+</html>
